@@ -73,12 +73,15 @@ class GoFishGame:
                 pass
         
     def get_winner(self):
-        if len(self.player_pairs) > len(self.computer_pairs):
+        if len(self.player) < len(self.computer):
             return "You win!"
-        elif len(self.player_pairs) < len(self.computer_pairs):
+        elif len(self.player) > len(self.computer):
             return "Computer wins!"
         else:
-            return "It's a draw!"
+            if len(self.player_pairs)>len(self.computer_pairs):
+                return "You Win!"
+            else:
+                return "Computer Wins!"
         
 
     def is_game_over(self):

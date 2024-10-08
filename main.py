@@ -11,6 +11,7 @@ class GameStatus(Static):
 class GoFishApp(App):
     
     CSS = """
+    
     #cardContainer {
         layout: grid;
         grid-size: 6;
@@ -24,13 +25,22 @@ class GoFishApp(App):
         margin: 1;
         content-align: center middle;
     }
+    #selectionButtons{
+        layout: grid;
+        grid-size: 2;
+        align-horizontal: center; 
+        align-vertical: middle;  
+    }       
     """
    
 
     def compose(self) -> ComposeResult:
         yield Header("Go Fish")
+        self.computerText=GameStatus("")
+        yield self.computerText
         self.status = GameStatus("Welcome to Go Fish! Press Start to begin.")
         yield self.status
+        
         yield Container(
             Button("Start Game", id="start", variant="primary"),
             Button("Quit Game", id="quit", variant="error"),
@@ -56,10 +66,27 @@ class GoFishApp(App):
             Button("Yes", id="yes"),
             Button("No", id="no"),
             id="selectionButtons"
+            
         )
+        self.amountOfPairs=GameStatus("Amount of Pairs: 0")
+        yield self.amountOfPairs
+        #self.comptPairs=GameStatus("Computer Pairs: 0")
+        #yield self.comptPairs
         yield Footer()
         
+    def on_mount(self):
+        self.hideCards()
+        self.hideSelection()
+        
+
+    def hideStart(self):
+       button= self.query_one("#mainButtons Button#start")
+       button.display=False
     
+    def showStart(self):
+       button= self.query_one("#mainButtons Button#start")
+       button.display=True
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
         if button_id == "start":
@@ -111,17 +138,22 @@ class GoFishApp(App):
             status="Go Fish!\n"
             self.game.player.append(self.game.deck.pop())  # Assuming you have a deck in your game
             status+=(f"You drew a {self.game.player[-1]}")
-            self.status.update_status(status)
+            self.computerText.update_status(status)
             if len(self.game.deck) == 0:
-                print("The deck is empty.")
+                self.checkWin()
         else:
-            self.status.update_status(f"Here is your card from the computer: {computer_cards[n]}\n")
+            self.computerText.update_status(f"Here is your card from the computer: {computer_cards[n]}\n")
             self.game.player.append(computer_cards.pop(n))
         
         self.game.identify_player_pairs()
         self.setupButtons()
+        self.amountOfPairs.update_status(f"Amount of Pairs: {self.getPairs()}")
         self.checkWin()
         self.computer_turn()
+
+    def getPairs(self):
+        return int(len(self.game.player_pairs)/2)
+
 
     def computer_turn(self):
         if not self.game.computer:
@@ -133,8 +165,11 @@ class GoFishApp(App):
         
         compvalue = cardComputerWants[:cardComputerWants.find(" ")]
         self.status.update_status(f"Computer asks: Do you have a {compvalue}?")
+        self.game.identify_computer_pairs()
         self.setCardsInactive()
         self.showSelection()
+        #self.comptPairs.update_status(f"Computer Pairs: {int(len(self.game.computer_pairs)/2)}")
+        self.checkWin()
     
     def setCardsInactive(self):
         card_buttons = self.query("Container#cardContainer Button")
@@ -170,27 +205,31 @@ class GoFishApp(App):
                 self.status.update_status("Go Fish! The computer drew a card.")
             else:
                 self.status.update_status("The deck is empty. No more cards to draw.")
+                self.checkWin()
 
         self.setupButtons()
         self.setCardsActive()
         self.hideSelection()
+        self.computerText.update_status("")
+        self.game.identify_computer_pairs()
         self.checkWin()
 
     def start_game(self):
         self.game = GoFishGame()
         self.game.setup()  # Set up the game
         self.status.update_status("Game Started! Ask Computer for a card.")
-        self.setupButtons()
         self.hideSelection()
+        self.showCards()
+        self.setupButtons()
+        self.hideStart()
 
     def checkWin(self):
         if self.game.is_game_over():
             self.status.update_status(self.game.get_winner())
-        
+            self.hideCards()
+            self.hideSelection()
+            self.showStart()
 
-        
-
-        
 
 if __name__ == "__main__":
     app = GoFishApp()
